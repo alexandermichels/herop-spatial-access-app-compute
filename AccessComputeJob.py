@@ -166,9 +166,9 @@ def load_geometry() -> gpd.GeoDataFrame:
 
 def load_population() -> gpd.GeoDataFrame:
     if POPULATION_TYPE == "TRACT":
-        population = gpd.read_file(os.path.join("./data", "DEFAULT_POP_DATA_TRACT.csv")).iloc[1:]
+        population = gpd.read_file(os.path.join(DATA_FOLDER, "DEFAULT_POP_DATA_TRACT.csv")).iloc[1:]
     elif POPULATION_TYPE == "ZIP":
-        population = gpd.read_file(os.path.join("./data", "DEFAULT_POP_DATA_ZIP.csv")).iloc[1:]
+        population = gpd.read_file(os.path.join(DATA_FOLDER, "DEFAULT_POP_DATA_ZIP.csv")).iloc[1:]
     else:
         raise Exception(f"POPULATION_TYPE should be TRACT or ZIP, somehow got {POPULATION_TYPE}")
     # TODO: for now just coercing to int64, revisit later
