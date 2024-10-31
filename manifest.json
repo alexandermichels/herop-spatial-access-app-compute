@@ -1,0 +1,58 @@
+{
+    "name": "Spatial Accessibility",
+    "container": "pysal-access",
+    "execution_stage": "python3 AccessComputeJob.py",
+    "slurm_input_rules": {
+        "time": {
+            "max": 60,
+            "min": 10,
+            "default_value": 20,
+            "step": 1,
+            "unit": "Minutes"
+        },
+            "memory": {
+                "max": 80,
+                "min": 20,
+                "default_value": 40,
+                "step": 1,
+                "unit": "GB"
+            }
+    },
+    "require_upload_data": false,
+    "param_rules": {
+        "mobility_mode": {
+            "type": "string_option",
+            "options": ["DRIVING", "WALKING", "BICYCLE"],
+            "default_value": "DRIVING"
+        },
+        "population_type": {
+            "type": "string_option",
+            "options": ["TRACT", "ZIP"],
+            "default_value": "TRACT"
+        },
+        "max_travel_time": {
+            "type": "integer",
+            "require": true,
+            "max": 100,
+            "min": 0,
+            "default_value": 50,
+            "step": 10
+        },
+        "access_measure": {
+            "type": "string_option",
+            "options": [
+                "ALL",
+                "GRAVITY",
+                "FCA",
+                "2SFCA",
+                "E2SFCA",
+                "G2SFCA",
+                "3SFCA",
+                "RAAM"
+            ],
+            "default_value": "ALL"
+        }
+    },
+    "supported_hpc": ["keeling_community"],
+    "default_hpc": "keeling_community"
+}
