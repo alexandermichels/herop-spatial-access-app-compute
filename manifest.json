@@ -1,5 +1,6 @@
 {
-    "name": "Spatial Accessibility",
+    "name": "HeRoP Spatial Accessibility",
+    "description": "A model that runs spatial accessibility metrics using the Pysal/access package on HPC.",
     "container": "pysal-access",
     "execution_stage": "python3 AccessComputeJob.py",
     "slurm_input_rules": {
@@ -51,8 +52,42 @@
                 "RAAM"
             ],
             "default_value": "ALL"
+        },
+        "supply_filename": {
+            "type": "string_input",
+            "require": "true",
+            "default_value": "supply/ContinentalHospitals.shp"
+        },
+        "supply_capacity": {
+             "type": "string_input",
+            "require": "true",
+            "default_value": "BEDS"
+        },
+        "supply_latlon_or_id": {
+            "type": "string_option",
+            "options": [
+                "ID",
+                "LATLON"
+            ],
+            "default_value": "ALL"
+        }
+        "supply_id": {
+            "type": "string_input",
+            "require": "true",
+            "default_value": "geoid"
+        },
+        "supply_lat": {
+            "type": "string_input",
+            "require": "true",
+            "default_value": ""
+        },
+        "supply_lon": {
+            "type": "string_input",
+            "require": "true",
+            "default_value": ""
         }
     },
+    "require_upload_data": "true",
     "supported_hpc": ["keeling_community"],
     "default_hpc": "keeling_community"
 }
