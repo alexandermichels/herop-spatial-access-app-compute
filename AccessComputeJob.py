@@ -11,6 +11,7 @@ import gzip
 import os
 import pandas as pd
 import pathlib
+from shapely import wkt
 import subprocess
 from typing import List, Tuple, Union
 
@@ -44,56 +45,98 @@ print("\n**End debugging info**\n\n")
 # In[4]:
 
 
+# set variables to be read in, only used for debugging purposes, get variables from end-user
+
+# os.environ["result_folder"] = "result"
+# os.environ['param_mobility_mode'] = "DRIVING"
+# os.environ['param_population_type'] = "TRACT"
+# os.environ['param_max_travel_time'] = "30"
+# os.environ['param_access_measure'] = "ALL"
+
+
+# VARIOUS SUPPLY DATASETS ON KEELING IN THE HEROP_DATA_DIR PATH
+
+# os.environ['param_supply_filename'] = "supply/ContinentalHospitals.shp"
+# os.environ['param_supply_capacity'] = "BEDS"
+# os.environ['param_supply_latlon_or_id'] = "ID"
+# os.environ['param_supply_lat'] = ""
+# os.environ['param_supply_lon'] = ""
+# os.environ['param_supply_id'] = "ZIP"
+
+# os.environ['param_supply_filename'] = "supply/chi_doc_pysal.csv"
+# os.environ['param_supply_capacity'] = "doc"
+# os.environ['param_supply_latlon_or_id'] = "ID"
+# os.environ['param_supply_lat'] = ""
+# os.environ['param_supply_lon'] = ""
+# os.environ['param_supply_id'] = "geoid"
+
+# os.environ['param_supply_filename'] = "supply/chi_hospitals_pysal.csv"
+# os.environ['param_supply_capacity'] = ""  # just count num hospitals
+# os.environ['param_supply_latlon_or_id'] = "LATLON"
+# os.environ['param_supply_lat'] = ""
+# os.environ['param_supply_lon'] = ""
+# os.environ['param_supply_id'] = ""
+
+# data folder depends on running in container vs. directly on Keeling
+# HEROP_DATA_DIR = "/data/keeling/a/michels9/common/michels9/herop_access_data"  # directly on keeling
+HEROP_DATA_DIR = "/job/herop_access_data"  # path we map that directory to in the container
+
+
+# In[5]:
+
+
 # general CyberGIS-Compute variables that will be useful
-RESULT_FOLDER = os.getenv('result_folder')
-# DATA_FOLDER = os.getenv('data_folder')
+RESULT_FOLDER = os.getenv('result_folder')  # data that will be sent to the end user
+DATA_FOLDER = os.getenv('data_folder')  # data input from the end user
 
 # get the appropriate variables, these will be passed by CyberGIS-Compute
 MOBILITY_MODE = os.getenv('param_mobility_mode')
 POPULATION_TYPE = os.getenv('param_population_type')
 MAX_TRAVEL_TIME = os.getenv('param_max_travel_time')
 ACCESS_MEASURE = os.getenv('param_access_measure')
-# SUPPLY_FILENAME = os.getenv('param_supply_filename')
+SUPPLY_FILENAME = os.getenv('param_supply_filename')
 
 # # supply data
-# SUPPLY_CAPACITY = os.getenv('param_supply_capacity')
-# SUPPLY_LATLON_OR_ID = os.getenv('param_supply_latlon_or_id')
-# SUPPLY_LAT = os.getenv('param_supply_lat')
-# SUPPLY_LON = os.getenv('param_supply_lon')
-# SUPPLY_ID = os.getenv('param_supply_id')
+SUPPLY_CAPACITY = os.getenv('param_supply_capacity')
+SUPPLY_LATLON_OR_ID = os.getenv('param_supply_latlon_or_id')
+SUPPLY_LAT = os.getenv('param_supply_lat')
+SUPPLY_LON = os.getenv('param_supply_lon')
+SUPPLY_ID = os.getenv('param_supply_id')
 
 
-# In[5]:
+# In[6]:
 
 
-# for testing purposes
-# general CyberGIS-Compute variables that will be useful
-# RESULT_FOLDER = "result"
-DATA_FOLDER = "/job/herop_access_data"  # this is mounted into the container, need more complex logic later to allow for uploaded data
+# changed to use the env vars
+# set the appropriate variables for the supply datasets available
+# if SUPPLY_FILENAME == "supply/ContinentalHospitals.shp":
+#     SUPPLY_CAPACITY = "BEDS"
+#     SUPPLY_LATLON_OR_ID = "ID"
+#     SUPPLY_LAT = ""
+#     SUPPLY_LON = ""
+#     SUPPLY_ID = "ZIP"
+# elif SUPPLY_FILENAME == "supply/chi_doc_pysal.csv":
+#     SUPPLY_CAPACITY = "doc"
+#     SUPPLY_LATLON_OR_ID = "ID"
+#     SUPPLY_LAT = ""
+#     SUPPLY_LON = ""
+#     SUPPLY_ID = "geoid"
+# elif SUPPLY_FILENAME == "supply/chi_hospitals_pysal.csv":
+#     SUPPLY_CAPACITY = ""  # just counting cummulative hospitals
+#     SUPPLY_LATLON_OR_ID = "LATLON"
+#     SUPPLY_LAT = ""  # these can be blank if the dataset already has a geometry field
+#     SUPPLY_LON = ""
+#     SUPPLY_ID = ""
 
-# get the appropriate variables, these will be passed by CyberGIS-Compute
-# MOBILITY_MODE = "DRIVING"
-# POPULATION_TYPE = "TRACT"
-# MAX_TRAVEL_TIME = "30"
-# ACCESS_MEASURE = "ALL"
 
-# supply data
-SUPPLY_FILENAME = "chi_doc_pysal.csv"  # assume CSV for now
-SUPPLY_CAPACITY = "doc"
-SUPPLY_LATLON_OR_ID = "ID"  # binary option between LATLON or ID
-SUPPLY_LAT = ""
-SUPPLY_LON = ""
-SUPPLY_ID = "geoid"
-
-
-# In[ ]:
+# In[7]:
 
 
 # geography data
-geo_join_col = "GEOID" if POPULATION_TYPE == 'TRACT' else "GEOID10"
+geo_join_col = "GEOID" if POPULATION_TYPE == 'TRACT' else "ZCTA5CE10"
 
 # population data
-population_join_col = 'FIPS'  # TODO: is this always FIPS? Definitely won't be if people upload data?
+population_join_col = 'FIPS' if POPULATION_TYPE == "TRACT" else "5-digit ZIP Code Tabulation Area"  # TODO: is this always FIPS? Definitely won't be if people upload data?
 population_data_col = "Total Population"  # TODO: is this always Total Population?
 
 # travel time data
@@ -102,7 +145,7 @@ matrix_join_col_d: str = "destination"
 matrix_travel_cost_col: str = "minutes"
 
 
-# In[6]:
+# In[8]:
 
 
 MAX_TRAVEL_TIME = int(MAX_TRAVEL_TIME)
@@ -116,7 +159,7 @@ MAX_TRAVEL_TIME = int(MAX_TRAVEL_TIME)
 # 
 # Helper functions taken from the HEROP spatial access lambda functions to reduce code reuse whereever possible: https://github.com/healthyregions/spatial-access/blob/main/lambda_functions
 
-# In[7]:
+# In[9]:
 
 
 def dfToGdf(df, lon, lat, crs='EPSG:4326'):
@@ -133,7 +176,7 @@ def dfToGdf(df, lon, lat, crs='EPSG:4326'):
 
 # ## Population and Geography Data
 
-# In[8]:
+# In[10]:
 
 
 def load_geometry() -> gpd.GeoDataFrame:
@@ -144,12 +187,13 @@ def load_geometry() -> gpd.GeoDataFrame:
         Tuple[gpd.GeoDataFrame, List]: (Geometry, list of unique origin IDs)
     """
     if POPULATION_TYPE == "TRACT":
-        geometry = gpd.read_file(os.path.join(DATA_FOLDER, "cb_2019_us_tract_500k.shp"))
+        geometry = gpd.read_file(os.path.join(HEROP_DATA_DIR, "cb_2019_us_tract_500k.shp"))
         
     elif POPULATION_TYPE == "ZIP":
-        geometry = gpd.read_file(os.path.join(DATA_FOLDER, "cb_2018_us_zcta510_500k.shp"))
+        geometry = gpd.read_file(os.path.join(HEROP_DATA_DIR, "cb_2018_us_zcta510_500k.shp"))
     else:
         raise Exception(f"POPULATION_TYPE should be TRACT or ZIP, somehow got {POPULATION_TYPE}")
+    geometry = geometry.to_crs("EPSG:4326")
     print(list(geometry.columns))
     geometry = geometry[[geo_join_col, "geometry"]]
     # coerce the field to an int64
@@ -161,14 +205,14 @@ def load_geometry() -> gpd.GeoDataFrame:
     return geometry
 
 
-# In[9]:
+# In[11]:
 
 
 def load_population() -> gpd.GeoDataFrame:
     if POPULATION_TYPE == "TRACT":
-        population = gpd.read_file(os.path.join(DATA_FOLDER, "DEFAULT_POP_DATA_TRACT.csv")).iloc[1:]
+        population = gpd.read_file(os.path.join(HEROP_DATA_DIR, "DEFAULT_POP_DATA_TRACT.csv")).iloc[1:]
     elif POPULATION_TYPE == "ZIP":
-        population = gpd.read_file(os.path.join(DATA_FOLDER, "DEFAULT_POP_DATA_ZIP.csv")).iloc[1:]
+        population = gpd.read_file(os.path.join(HEROP_DATA_DIR, "DEFAULT_POP_DATA_ZIP.csv")).iloc[1:]
     else:
         raise Exception(f"POPULATION_TYPE should be TRACT or ZIP, somehow got {POPULATION_TYPE}")
     # TODO: for now just coercing to int64, revisit later
@@ -192,7 +236,7 @@ def load_population() -> gpd.GeoDataFrame:
     return population
 
 
-# In[10]:
+# In[12]:
 
 
 population = load_population()
@@ -201,35 +245,73 @@ print(f"Population loaded with {len(population)} rows: {population.head()}")
 
 # ## Supply Data
 
-# In[11]:
+# In[13]:
 
 
 # load the supply data
 def get_supply_data():
     # load the data from the data_dir
-    supply_data_path = os.path.join(DATA_FOLDER, SUPPLY_FILENAME)
-    supply_df = pd.read_csv(supply_data_path)
+    global SUPPLY_ID
+    if SUPPLY_FILENAME in [
+        "supply/ContinentalHospitals.shp",
+        "supply/chi_doc_pysal.csv",
+        "supply/chi_hospitals_pysal.csv"
+    ]:  # CHECKS IF IT IS ONE OF OUR DEFAULT DATASETS
+        supply_data_path = os.path.join(HEROP_DATA_DIR, SUPPLY_FILENAME)
+    else:  # else use the data_dir which holds user-provided data
+        supply_data_path = os.path.join(DATA_DIR, SUPPLY_FILENAME)
+    try:
+        supply_df = gpd.read_file(supply_data_path)
+    except ValueError as e:
+        print(f"Caught ValueError: {e}\n Trying to load as CSV...")
+        supply_df = pd.read_csv(supply_data_path)
+        if "geometry" in supply_df.columns:
+            try:
+                supply_df['geometry'] = supply_df['geometry'].apply(wkt.loads)
+                supply_df = gpd.GeoDataFrame(supply_df, crs='epsg:4326')
+            except Exception as e:
+                print(f"In get_supply_data: attempted to convert geometry column from {supply_data_path} to geometry as WKT, but failed with: {e}")
     if SUPPLY_LATLON_OR_ID == "ID":  # if using geoid
         assert SUPPLY_ID in supply_df.columns
-    elif SUPPLY_LATLON_OR_ID == "ID":  # if using lat/lon
-        # load the geometry data we will map to
-        geometry = load_geometry()
-        supply_df = dfToGdf(supply_df, SUPPLY_LAT, SUPPLY_LON)
-        print(f"in set_destination determining destinations with {supply_df.head()}")
-        supply_df = gpd.sjoin(supply_df, geometry[[geo_join_col, 'geometry']], how='inner', op='intersects')
-        print(f"in set_destination, gdf is {gdf.head()}")
+    elif SUPPLY_LATLON_OR_ID == "LATLON":  # if using lat/lon
+        if "geometry" not in supply_df.columns:  # allow for geospatial data inputs
+            # load the geometry data we will map to
+            geometry = load_geometry()
+            print(f"Setting supply using Lat/Lon columns {SUPPLY_LAT}/{SUPPLY_LON}:\n {supply_df.head()}")
+            supply_df = dfToGdf(supply_df, SUPPLY_LAT, SUPPLY_LON)
+            supply_df = gpd.sjoin(geometry[[geo_join_col, 'geometry']], supply_df, how='inner', predicate='intersects')
+        else:
+            # load the geometry data we will map to
+            geometry = load_geometry()
+            print(f"Setting supply using geometry column:\n {supply_df.head()}")
+            supply_df = gpd.sjoin(geometry[[geo_join_col, 'geometry']], supply_df, how='inner', predicate='intersects')
         # in set_destination, gdf is GEOID_left FIPS ... index_right GEOID_right
         supply_df = pd.DataFrame(supply_df)
-        print(f"supply_df is {supply_df.columns}")
+        SUPPLY_ID = geo_join_col
     else:
         raise Exception(f"SUPPLY_LATLON_OR_ID should be ID or LATLON, somehow got {SUPPLY_LATLON_OR_ID}")
+    global SUPPLY_CAPACITY
+    if SUPPLY_CAPACITY == "":
+        SUPPLY_CAPACITY = "# of Opportunities"  # TODO: HARD-CODE BAD
+        print(SUPPLY_CAPACITY)
+        supply_df[SUPPLY_CAPACITY] = 1  # set every resource/opportunity to 1
+    print(SUPPLY_CAPACITY)
+    print(f"supply_df is {supply_df.columns}")
     supply_df = supply_df[[SUPPLY_CAPACITY, SUPPLY_ID]]
+    try:
+        supply_df[SUPPLY_CAPACITY] = supply_df[SUPPLY_CAPACITY].astype('float')
+    except Exception as e: 
+        print(f" Error when coercing supply_df[SUPPLY_CAPACITY] to float : {e} ")
+    print(supply_df.dtypes)
+    print(supply_df.head())
     supply_df = supply_df[supply_df[SUPPLY_CAPACITY] > 0]  # drop 0 and negative supply
+    # sum up for duplicates (e.g. hospitals in the same ZCTA)
+    supply_df = supply_df.groupby(SUPPLY_ID, as_index=False)[SUPPLY_CAPACITY].sum()
     supply_df[SUPPLY_ID] = supply_df[SUPPLY_ID].astype('int64')
     return supply_df
 
 
-# In[12]:
+# In[14]:
 
 
 supply = get_supply_data()
@@ -239,30 +321,29 @@ supply.head()
 
 # ## Load Travel Time
 
-# In[13]:
+# In[15]:
 
 
 def get_transit_matrix():
 #     MOBILITY_MODE = "WALKING"
 #     POPULATION_TYPE = "TRACT"
     if POPULATION_TYPE == "TRACT" and MOBILITY_MODE == "DRIVING":
-        path = os.path.join(DATA_FOLDER, "US-matrix-TRACT-DRIVING")
+        path = os.path.join(HEROP_DATA_DIR, "US-matrix-TRACT-DRIVING")
         assert os.path.exists(path)  # quick sanity check, we can add more if necessary
         transit_matrix = pd.concat(
             pd.read_parquet(_file) for _file in pathlib.Path(path).glob("*.parquet")
         )
-    elif POPULATION_TYPE == "TRACT" and MOBILITY_MODE == "BICYCLE":
-        path = os.path.join(DATA_FOLDER, f"US-matrix-{POPULATION_TYPE}-{MOBILITY_MODE}.parquet.gz")
-        assert os.path.exists(path)  # quick sanity check, we can add more if necessary
-        transit_matrx = pd.read_parquet(path)
     else:
-        path = os.path.join(DATA_FOLDER, f"US-matrix-{POPULATION_TYPE}-{MOBILITY_MODE}.parquet")
+        path = os.path.join(HEROP_DATA_DIR, f"US-matrix-{POPULATION_TYPE}-{MOBILITY_MODE}.parquet")
         print(path)
         assert os.path.exists(path)  # quick sanity check, we can add more if necessary
         transit_matrix = pd.read_parquet(path)
     # quick sanity checking/cleaning
     _len = len(transit_matrix)
     transit_matrix = transit_matrix[transit_matrix[matrix_travel_cost_col] >= 0]
+    transit_matrix = transit_matrix[transit_matrix[matrix_travel_cost_col] <= MAX_TRAVEL_TIME]  # drop past max
+    # drop duplicates
+    transit_matrix = transit_matrix.drop_duplicates(subset=[matrix_join_col_o, matrix_join_col_d])
     _cleaned_len = len(transit_matrix)
     print(f"After cleaning, transit_matrix is {len(transit_matrix)} rows ({_len - _cleaned_len} dropped)")
     transit_matrix[matrix_join_col_o] = transit_matrix[matrix_join_col_o].astype('int64')
@@ -270,7 +351,13 @@ def get_transit_matrix():
     return transit_matrix
 
 
-# In[14]:
+# In[16]:
+
+
+print(f"US-matrix-{POPULATION_TYPE}-{MOBILITY_MODE}.parquet")
+
+
+# In[17]:
 
 
 # load the travel time data
@@ -279,7 +366,7 @@ print(f"The transit matrix as {len(transit_matrix)} rows")
 transit_matrix.head()
 
 
-# In[15]:
+# In[18]:
 
 
 # start by getting a collection of origins/destinations we have data for
@@ -289,7 +376,7 @@ possible_destinations = set(supply[SUPPLY_ID])
 print(len(possible_destinations))
 
 
-# In[16]:
+# In[19]:
 
 
 _len = len(transit_matrix)
@@ -302,7 +389,7 @@ print(f"Transit matrix is {len(transit_matrix)} after dropping data outside of s
 
 # ## Calculating Access
 
-# In[17]:
+# In[20]:
 
 
 # create the "merged_data" DF
@@ -316,16 +403,27 @@ print(len(merged_data))
 merged_data.head()
 
 
-# In[18]:
+# In[21]:
 
 
 def analyze_nearest(merged_data) -> pd.DataFrame:
-    time_to_nearest = merged_data[~merged_data[matrix_join_col_o].duplicated()][
+    time_to_nearest = merged_data.loc[merged_data.groupby(matrix_join_col_o)[matrix_travel_cost_col].idxmin()].reset_index(drop=True)[
         [matrix_join_col_o, matrix_travel_cost_col]]
     return time_to_nearest
 
 
-# In[19]:
+# In[22]:
+
+
+def analyze_count_in_threshold(merged_data) -> pd.DataFrame:
+    count_within_threshold = merged_data[merged_data[matrix_travel_cost_col] < MAX_TRAVEL_TIME] \
+      .groupby(matrix_join_col_o).count() \
+      .reset_index()[[matrix_join_col_o, matrix_travel_cost_col]] \
+      .rename(columns={matrix_travel_cost_col: f"count in {MAX_TRAVEL_TIME}"})
+    return count_within_threshold
+
+
+# In[23]:
 
 
 # do the nearest time here
@@ -333,41 +431,12 @@ ttn = analyze_nearest(merged_data)
 ttn.head()
 
 
-# In[20]:
-
-
-def analyze_count_in_threshold(merged_data) -> pd.DataFrame:
-    count_within_threshold = merged_data[merged_data[matrix_travel_cost_col] < MAX_TRAVEL_TIME]       .groupby(matrix_join_col_o).count()       .reset_index()[[matrix_join_col_o, matrix_travel_cost_col]]       .rename(columns={matrix_travel_cost_col: f"count in {MAX_TRAVEL_TIME}"})
-    return count_within_threshold
-
-
-# In[21]:
+# In[24]:
 
 
 # count in threshold
 cwt = analyze_count_in_threshold(merged_data)
 cwt.head()
-
-
-# In[22]:
-
-
-# print(population.dtypes)
-# population[population_join_col].head()
-
-
-# In[23]:
-
-
-# print(population.dtypes)
-# supply[SUPPLY_ID].head()
-
-
-# In[24]:
-
-
-# print(transit_matrix.dtypes)
-# transit_matrix[[matrix_join_col_o, matrix_join_col_d]].head()
 
 
 # In[25]:
@@ -447,7 +516,9 @@ A.access_df.head()
 
 
 results = load_geometry()
-results = results             .merge(ttn, how="left", left_on=geo_join_col, right_on=matrix_join_col_o)             .merge(cwt, how="left", left_on=geo_join_col, right_on=matrix_join_col_o) 
+results = results \
+            .merge(ttn, how="left", left_on=geo_join_col, right_on=matrix_join_col_o) \
+            .merge(cwt, how="left", left_on=geo_join_col, right_on=matrix_join_col_o) 
 results.head()
 
 
@@ -492,13 +563,25 @@ results.head()
 # In[35]:
 
 
-results.to_csv(os.path.join(RESULT_FOLDER, "access_result.csv"))
+results.to_file(os.path.join(RESULT_FOLDER, "access_result.gpkg"))
 
 
-# In[36]:
+# In[ ]:
 
 
 # results.plot(column="minutes", legend=True)  # for debugging
+
+
+# In[ ]:
+
+
+results.drop(columns=["geometry"]).to_csv(os.path.join(RESULT_FOLDER, "access_result.csv"))
+
+
+# In[ ]:
+
+
+
 
 
 # In[ ]:

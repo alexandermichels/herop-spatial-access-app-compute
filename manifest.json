@@ -1,5 +1,6 @@
 {
-    "name": "Spatial Accessibility",
+    "name": "HeRoP Spatial Accessibility",
+    "description": "A model that runs spatial accessibility metrics using the Pysal/access package on HPC.",
     "container": "pysal-access",
     "execution_stage": "python3 AccessComputeJob.py",
     "slurm_input_rules": {
@@ -18,7 +19,6 @@
                 "unit": "GB"
             }
     },
-    "require_upload_data": false,
     "param_rules": {
         "mobility_mode": {
             "type": "string_option",
@@ -28,7 +28,7 @@
         "population_type": {
             "type": "string_option",
             "options": ["TRACT", "ZIP"],
-            "default_value": "TRACT"
+            "default_value": "ZIP"
         },
         "max_travel_time": {
             "type": "integer",
@@ -51,8 +51,42 @@
                 "RAAM"
             ],
             "default_value": "ALL"
+        },
+        "supply_filename": {
+            "type": "string_input",
+            "require": "true",
+            "default_value": "supply/ContinentalHospitals.shp"
+        },
+        "supply_capacity": {
+             "type": "string_input",
+            "require": "true",
+            "default_value": "BEDS"
+        },
+        "supply_latlon_or_id": {
+            "type": "string_option",
+            "options": [
+                "ID",
+                "LATLON"
+            ],
+            "default_value": "ID"
+        },
+        "supply_id": {
+            "type": "string_input",
+            "require": "true",
+            "default_value": "ZIP"
+        },
+        "supply_lat": {
+            "type": "string_input",
+            "require": "true",
+            "default_value": ""
+        },
+        "supply_lon": {
+            "type": "string_input",
+            "require": "true",
+            "default_value": ""
         }
     },
+    "require_upload_data": "true",
     "supported_hpc": ["keeling_community"],
     "default_hpc": "keeling_community"
 }
