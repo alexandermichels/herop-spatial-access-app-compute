@@ -1,3 +1,8 @@
+slurm*
+result/*
+access_result.*
+
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

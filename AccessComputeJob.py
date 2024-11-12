@@ -46,26 +46,39 @@ print("\n**End debugging info**\n\n")
 
 
 # set variables to be read in, only used for debugging purposes, get variables from end-user
-#os.environ["result_folder"] = "result"
-#os.environ['param_mobility_mode'] = "WALKING"
-#os.environ['param_population_type'] = "TRACT"
-#os.environ['param_max_travel_time'] = "30"
-#os.environ['param_access_measure'] = "ALL"
+
+# os.environ["result_folder"] = "result"
+# os.environ['param_mobility_mode'] = "DRIVING"
+# os.environ['param_population_type'] = "TRACT"
+# os.environ['param_max_travel_time'] = "30"
+# os.environ['param_access_measure'] = "ALL"
+
+
+# VARIOUS SUPPLY DATASETS ON KEELING IN THE HEROP_DATA_DIR PATH
+
 # os.environ['param_supply_filename'] = "supply/ContinentalHospitals.shp"
 # os.environ['param_supply_capacity'] = "BEDS"
 # os.environ['param_supply_latlon_or_id'] = "ID"
 # os.environ['param_supply_lat'] = ""
 # os.environ['param_supply_lon'] = ""
 # os.environ['param_supply_id'] = "ZIP"
-#os.environ['param_supply_filename'] = "supply/chi_doc_pysal.csv"
-#os.environ['param_supply_capacity'] = "doc"
-#os.environ['param_supply_latlon_or_id'] = "ID"
-#os.environ['param_supply_lat'] = ""
-#os.environ['param_supply_lon'] = ""
-#os.environ['param_supply_id'] = "geoid"
+
+# os.environ['param_supply_filename'] = "supply/chi_doc_pysal.csv"
+# os.environ['param_supply_capacity'] = "doc"
+# os.environ['param_supply_latlon_or_id'] = "ID"
+# os.environ['param_supply_lat'] = ""
+# os.environ['param_supply_lon'] = ""
+# os.environ['param_supply_id'] = "geoid"
+
+# os.environ['param_supply_filename'] = "supply/chi_hospitals_pysal.csv"
+# os.environ['param_supply_capacity'] = ""  # just count num hospitals
+# os.environ['param_supply_latlon_or_id'] = "LATLON"
+# os.environ['param_supply_lat'] = ""
+# os.environ['param_supply_lon'] = ""
+# os.environ['param_supply_id'] = ""
 
 # data folder depends on running in container vs. directly on Keeling
-#HEROP_DATA_DIR = "/data/keeling/a/michels9/common/michels9/herop_access_data"  # directly on keeling
+# HEROP_DATA_DIR = "/data/keeling/a/michels9/common/michels9/herop_access_data"  # directly on keeling
 HEROP_DATA_DIR = "/job/herop_access_data"  # path we map that directory to in the container
 
 
@@ -239,7 +252,14 @@ print(f"Population loaded with {len(population)} rows: {population.head()}")
 def get_supply_data():
     # load the data from the data_dir
     global SUPPLY_ID
-    supply_data_path = os.path.join(HEROP_DATA_DIR, SUPPLY_FILENAME)
+    if SUPPLY_FILENAME in [
+        "supply/ContinentalHospitals.shp",
+        "supply/chi_doc_pysal.csv",
+        "supply/chi_hospitals_pysal.csv"
+    ]:  # CHECKS IF IT IS ONE OF OUR DEFAULT DATASETS
+        supply_data_path = os.path.join(HEROP_DATA_DIR, SUPPLY_FILENAME)
+    else:  # else use the data_dir which holds user-provided data
+        supply_data_path = os.path.join(DATA_DIR, SUPPLY_FILENAME)
     try:
         supply_df = gpd.read_file(supply_data_path)
     except ValueError as e:
@@ -313,10 +333,6 @@ def get_transit_matrix():
         transit_matrix = pd.concat(
             pd.read_parquet(_file) for _file in pathlib.Path(path).glob("*.parquet")
         )
-    elif POPULATION_TYPE == "TRACT" and MOBILITY_MODE == "BICYCLE":
-        path = os.path.join(HEROP_DATA_DIR, f"US-matrix-{POPULATION_TYPE}-{MOBILITY_MODE}.parquet.gz")
-        assert os.path.exists(path)  # quick sanity check, we can add more if necessary
-        transit_matrx = pd.read_parquet(path)
     else:
         path = os.path.join(HEROP_DATA_DIR, f"US-matrix-{POPULATION_TYPE}-{MOBILITY_MODE}.parquet")
         print(path)
@@ -391,20 +407,12 @@ merged_data.head()
 
 
 def analyze_nearest(merged_data) -> pd.DataFrame:
-    time_to_nearest = merged_data[~merged_data[matrix_join_col_o].duplicated()][
+    time_to_nearest = merged_data.loc[merged_data.groupby(matrix_join_col_o)[matrix_travel_cost_col].idxmin()].reset_index(drop=True)[
         [matrix_join_col_o, matrix_travel_cost_col]]
     return time_to_nearest
 
 
 # In[22]:
-
-
-# do the nearest time here
-ttn = analyze_nearest(merged_data)
-ttn.head()
-
-
-# In[23]:
 
 
 def analyze_count_in_threshold(merged_data) -> pd.DataFrame:
@@ -413,6 +421,14 @@ def analyze_count_in_threshold(merged_data) -> pd.DataFrame:
       .reset_index()[[matrix_join_col_o, matrix_travel_cost_col]] \
       .rename(columns={matrix_travel_cost_col: f"count in {MAX_TRAVEL_TIME}"})
     return count_within_threshold
+
+
+# In[23]:
+
+
+# do the nearest time here
+ttn = analyze_nearest(merged_data)
+ttn.head()
 
 
 # In[24]:
@@ -424,27 +440,6 @@ cwt.head()
 
 
 # In[25]:
-
-
-# print(population.dtypes)
-# population[population_join_col].head()
-
-
-# In[26]:
-
-
-# print(population.dtypes)
-# supply[SUPPLY_ID].head()
-
-
-# In[27]:
-
-
-# print(transit_matrix.dtypes)
-# transit_matrix[[matrix_join_col_o, matrix_join_col_d]].head()
-
-
-# In[28]:
 
 
 # create pysal/access object
@@ -464,7 +459,7 @@ A = Access(demand_df            = population,
            neighbor_cost_name            = matrix_travel_cost_col) # newer versions require this TCM
 
 
-# In[29]:
+# In[26]:
 
 
 # use a list so we can allow for multi later
@@ -484,7 +479,7 @@ else:
 print(metrics2run)
 
 
-# In[30]:
+# In[27]:
 
 
 if "GRAVITY" in metrics2run:
@@ -509,7 +504,7 @@ if "RAAM" in metrics2run:
     A.raam(name = "raam", tau = 30)
 
 
-# In[31]:
+# In[28]:
 
 
 A.access_df.head()
@@ -517,7 +512,7 @@ A.access_df.head()
 
 # ## Combine Results
 
-# In[32]:
+# In[29]:
 
 
 results = load_geometry()
@@ -527,14 +522,14 @@ results = results \
 results.head()
 
 
-# In[33]:
+# In[30]:
 
 
 results = results.merge(A.access_df, left_on=geo_join_col, right_index=True)
 results.head()
 
 
-# In[34]:
+# In[31]:
 
 
 results = results.drop(columns=["Total Population",
@@ -542,13 +537,13 @@ results = results.drop(columns=["Total Population",
                                 f"{matrix_join_col_o}_y"], errors='ignore')
 
 
-# In[35]:
+# In[32]:
 
 
 results.head()
 
 
-# In[36]:
+# In[33]:
 
 
 result_cols = list(results.columns)
@@ -556,7 +551,7 @@ result_cols = set(result_cols) - set([geo_join_col, "geometry"])
 result_cols
 
 
-# In[37]:
+# In[34]:
 
 
 results = results.dropna(subset=list(result_cols), how='all') # drop row if all result columns are nan
@@ -565,16 +560,28 @@ results.head()
 
 # ## Save the Results
 
-# In[38]:
+# In[35]:
 
 
-results.to_csv(os.path.join(RESULT_FOLDER, "access_result.csv"))
+results.to_file(os.path.join(RESULT_FOLDER, "access_result.gpkg"))
 
 
-# In[39]:
+# In[ ]:
 
 
-#results.plot(column="minutes", legend=True)  # for debugging
+# results.plot(column="minutes", legend=True)  # for debugging
+
+
+# In[ ]:
+
+
+results.drop(columns=["geometry"]).to_csv(os.path.join(RESULT_FOLDER, "access_result.csv"))
+
+
+# In[ ]:
+
+
+
 
 
 # In[ ]:
