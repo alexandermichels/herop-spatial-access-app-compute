@@ -28,7 +28,7 @@
         "population_type": {
             "type": "string_option",
             "options": ["TRACT", "ZIP"],
-            "default_value": "TRACT"
+            "default_value": "ZIP"
         },
         "max_travel_time": {
             "type": "integer",
