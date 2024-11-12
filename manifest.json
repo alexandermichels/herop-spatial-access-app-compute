@@ -19,7 +19,6 @@
                 "unit": "GB"
             }
     },
-    "require_upload_data": false,
     "param_rules": {
         "mobility_mode": {
             "type": "string_option",
@@ -70,7 +69,7 @@
                 "LATLON"
             ],
             "default_value": "ALL"
-        }
+        },
         "supply_id": {
             "type": "string_input",
             "require": "true",
