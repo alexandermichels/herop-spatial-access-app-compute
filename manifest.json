@@ -68,12 +68,12 @@
                 "ID",
                 "LATLON"
             ],
-            "default_value": "ALL"
+            "default_value": "ID"
         },
         "supply_id": {
             "type": "string_input",
             "require": "true",
-            "default_value": "geoid"
+            "default_value": "ZIP"
         },
         "supply_lat": {
             "type": "string_input",
