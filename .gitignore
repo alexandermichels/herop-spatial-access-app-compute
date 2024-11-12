@@ -1,7 +1,7 @@
 slurm*
 result/*
 access_result.*
-
+cybergis_compute_user.json
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
