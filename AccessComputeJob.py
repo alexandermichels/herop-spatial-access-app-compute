@@ -259,7 +259,7 @@ def get_supply_data():
     ]:  # CHECKS IF IT IS ONE OF OUR DEFAULT DATASETS
         supply_data_path = os.path.join(HEROP_DATA_DIR, SUPPLY_FILENAME)
     else:  # else use the data_dir which holds user-provided data
-        supply_data_path = os.path.join(DATA_DIR, SUPPLY_FILENAME)
+        supply_data_path = os.path.join(DATA_FOLDER, SUPPLY_FILENAME)
     try:
         supply_df = gpd.read_file(supply_data_path)
     except ValueError as e:
