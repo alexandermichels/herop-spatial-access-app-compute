@@ -263,6 +263,7 @@ def get_supply_data():
         supply_data_path = os.path.join(DATA_FOLDER, SUPPLY_FILENAME)
     try:
         supply_df = gpd.read_file(supply_data_path)
+        assert type(supply_df) == gpd.GeoDataFrame
     except ValueError as e:
         print(f"Caught ValueError: {e}\n Trying to load as CSV...")
         supply_df = pd.read_csv(supply_data_path)
@@ -275,7 +276,7 @@ def get_supply_data():
     if SUPPLY_LATLON_OR_ID == "ID":  # if using geoid
         assert SUPPLY_ID in supply_df.columns
     elif SUPPLY_LATLON_OR_ID == "LATLON":  # if using lat/lon
-        print(list(supply_df.columns))
+        print("within latlon" + list(supply_df.columns))
         if "geometry" not in supply_df.columns:  # allow for geospatial data inputs
             # load the geometry data we will map to
             geometry = load_geometry()
