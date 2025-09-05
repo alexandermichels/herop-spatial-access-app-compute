@@ -1,3 +1,6 @@
+export data_folder=""
+export result_folder=""
+
 export result_folder="result"
 export param_mobility_mode="DRIVING"
 export param_population_type="ZIP"

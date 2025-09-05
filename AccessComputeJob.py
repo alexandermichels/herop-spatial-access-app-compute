@@ -79,7 +79,7 @@ print("\n**End debugging info**\n\n")
 
 # data folder depends on running in container vs. directly on Keeling
 # HEROP_DATA_DIR = "/data/keeling/a/michels9/common/michels9/herop_access_data"  # directly on keeling
-# HEROP_DATA_DIR = "/media/euler/Data/herop_access_data"  # directly on euler
+# HEROP_DATA_DIR = "/media/euler/Data/herop_access_data"  # directory on euler
 HEROP_DATA_DIR = "/job/herop_access_data"  # path we map that directory to in the container
 
 
@@ -261,12 +261,13 @@ def get_supply_data():
         supply_data_path = os.path.join(HEROP_DATA_DIR, SUPPLY_FILENAME)
     else:  # else use the data_dir which holds user-provided data
         supply_data_path = os.path.join(DATA_FOLDER, SUPPLY_FILENAME)
+    
     try:
         supply_df = gpd.read_file(supply_data_path)
-        assert type(supply_df) == gpd.GeoDataFrame
     except ValueError as e:
-        print(f"Caught ValueError: {e}\n Trying to load as CSV...")
-        supply_df = pd.read_csv(supply_data_path)
+        print(f"Caught ValueError: {e}...")
+    
+    if not type(supply_df) == gpd.GeoDataFrame:
         if "geometry" in supply_df.columns:
             try:
                 supply_df['geometry'] = supply_df['geometry'].apply(wkt.loads)
