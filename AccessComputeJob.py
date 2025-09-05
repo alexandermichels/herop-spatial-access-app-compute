@@ -79,8 +79,8 @@ print("\n**End debugging info**\n\n")
 
 # data folder depends on running in container vs. directly on Keeling
 # HEROP_DATA_DIR = "/data/keeling/a/michels9/common/michels9/herop_access_data"  # directly on keeling
-HEROP_DATA_DIR = "/media/euler/Data/herop_access_data"  # directory on euler
-# HEROP_DATA_DIR = "/job/herop_access_data"  # path we map that directory to in the container
+# HEROP_DATA_DIR = "/media/euler/Data/herop_access_data"  # directory on euler
+HEROP_DATA_DIR = "/job/herop_access_data"  # path we map that directory to in the container
 
 
 # In[5]:
@@ -195,7 +195,6 @@ def load_geometry() -> gpd.GeoDataFrame:
     else:
         raise Exception(f"POPULATION_TYPE should be TRACT or ZIP, somehow got {POPULATION_TYPE}")
     geometry = geometry.to_crs("EPSG:4326")
-    print(list(geometry.columns))
     geometry = geometry[[geo_join_col, "geometry"]]
     # coerce the field to an int64
     # TODO: do we always want to coerce to int64?
@@ -277,15 +276,12 @@ def get_supply_data():
     if SUPPLY_LATLON_OR_ID == "ID":  # if using geoid
         assert SUPPLY_ID in supply_df.columns
     elif SUPPLY_LATLON_OR_ID == "LATLON":  # if using lat/lon
-        print("within latlon", list(supply_df.columns))
-        print(supply_df.head())
         # print("geometry" not in supply_df.columns, supply_df.geometry.isnull().all())
         if "geometry" not in supply_df.columns or supply_df.geometry.isnull().all():  # allow for geospatial data inputs
             # load the geometry data we will map to
             geometry = load_geometry()
             print(f"Setting supply using Lat/Lon columns {SUPPLY_LAT}/{SUPPLY_LON}:\n {supply_df.head()}")
             supply_df = dfToGdf(supply_df, SUPPLY_LON, SUPPLY_LAT)
-            print(geometry)
             supply_df = gpd.sjoin(geometry[[geo_join_col, 'geometry']], supply_df, how='inner', predicate='intersects')
         else:
             print("Loading geometry for supply...")
