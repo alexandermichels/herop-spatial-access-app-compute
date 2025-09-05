@@ -276,7 +276,7 @@ def get_supply_data():
     if SUPPLY_LATLON_OR_ID == "ID":  # if using geoid
         assert SUPPLY_ID in supply_df.columns
     elif SUPPLY_LATLON_OR_ID == "LATLON":  # if using lat/lon
-        print("within latlon" + list(supply_df.columns))
+        print("within latlon", list(supply_df.columns))
         if "geometry" not in supply_df.columns:  # allow for geospatial data inputs
             # load the geometry data we will map to
             geometry = load_geometry()
