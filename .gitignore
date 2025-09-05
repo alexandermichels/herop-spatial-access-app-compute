@@ -1,3 +1,4 @@
+*.csv
 slurm*
 result/*
 access_result.*

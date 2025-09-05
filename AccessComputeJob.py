@@ -11,7 +11,7 @@ import gzip
 import os
 import pandas as pd
 import pathlib
-from shapely import wkt
+from shapely import Point, wkt
 import subprocess
 from typing import List, Tuple, Union
 
@@ -79,6 +79,7 @@ print("\n**End debugging info**\n\n")
 
 # data folder depends on running in container vs. directly on Keeling
 # HEROP_DATA_DIR = "/data/keeling/a/michels9/common/michels9/herop_access_data"  # directly on keeling
+# HEROP_DATA_DIR = "/media/euler/Data/herop_access_data"  # directly on euler
 HEROP_DATA_DIR = "/job/herop_access_data"  # path we map that directory to in the container
 
 
@@ -274,6 +275,7 @@ def get_supply_data():
     if SUPPLY_LATLON_OR_ID == "ID":  # if using geoid
         assert SUPPLY_ID in supply_df.columns
     elif SUPPLY_LATLON_OR_ID == "LATLON":  # if using lat/lon
+        print(list(supply_df.columns))
         if "geometry" not in supply_df.columns:  # allow for geospatial data inputs
             # load the geometry data we will map to
             geometry = load_geometry()
