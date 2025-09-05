@@ -1,10 +1,15 @@
 # HEROP Spatial Accessibility App through CyberGIS-Compute
 
-**[To open the notebook that uses the CyberGIS-Compute model on CyberGISX, click here](https://cybergisx.cigi.illinois.edu/hub/user-redirect/git-pull?repo=https%3A%2F%2Fgithub.com%2Falexandermichels%2Fherop-spatial-access-app-compute&urlpath=lab%2Ftree%2Fherop-spatial-access-app-compute%2FUsingTheModel.ipynb&branch=main)**
-
 Check out the lab: https://healthyregions.org/
 
 Compute plug: https://cybergis.github.io/cybergis-compute-python-sdk/
+
+## ToDos and In-Progress
+
+This is a living model that is currently in progress. To dos include:
+
+- [ ] Allowing users to bring their own population/demand data.
+- [ ] Supporting s3 links as input files.
 
 
 ## Running the Model with Compute
@@ -44,4 +49,3 @@ HEROP_DATA_DIR = "/data/keeling/a/michels9/common/michels9/herop_access_data"  #
 # HEROP_DATA_DIR = "/job/herop_access_data"  # path we map that directory to in the container
 ```
 * Comment out any line using matplotlib/folium as those aren't in the container (but I can add them lmk)
-* If there are particular parameters/data you want to use for our sanity check `test_all_params.sbatch` file it is just a simple script looping through options so you can add your stuff to the arrays we loop through.

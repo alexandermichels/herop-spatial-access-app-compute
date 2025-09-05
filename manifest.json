@@ -41,6 +41,7 @@
         "access_measure": {
             "type": "string_option",
             "options": [
+                "TIMECOUNT",
                 "ALL",
                 "GRAVITY",
                 "FCA",
