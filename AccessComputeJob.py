@@ -79,8 +79,8 @@ print("\n**End debugging info**\n\n")
 
 # data folder depends on running in container vs. directly on Keeling
 # HEROP_DATA_DIR = "/data/keeling/a/michels9/common/michels9/herop_access_data"  # directly on keeling
-HEROP_DATA_DIR = "/media/euler/Data/herop_access_data"  # directory on euler
-# HEROP_DATA_DIR = "/job/herop_access_data"  # path we map that directory to in the container
+# HEROP_DATA_DIR = "/media/euler/Data/herop_access_data"  # directory on euler
+HEROP_DATA_DIR = "/job/herop_access_data"  # path we map that directory to in the container
 
 
 # In[5]:
