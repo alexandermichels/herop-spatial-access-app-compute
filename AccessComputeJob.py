@@ -332,6 +332,7 @@ supply.head()
 def get_transit_matrix():
 #     MOBILITY_MODE = "WALKING"
 #     POPULATION_TYPE = "TRACT"
+    assert MOBILITY_MODE in ["DRIVING", "WALKING", "BIKING"]
     if POPULATION_TYPE == "TRACT" and MOBILITY_MODE == "DRIVING":
         path = os.path.join(HEROP_DATA_DIR, "US-matrix-TRACT-DRIVING")
         assert os.path.exists(path)  # quick sanity check, we can add more if necessary
