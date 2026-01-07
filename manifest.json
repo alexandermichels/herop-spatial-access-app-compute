@@ -85,6 +85,14 @@
             "type": "string_input",
             "require": "true",
             "default_value": ""
+        },
+        "output_format": {
+            "type": "string_option",
+            "options": [
+                "CSV",
+                "GPKG"
+            ],
+            "default_value": "ID"
         }
     },
     "require_upload_data": "true",
