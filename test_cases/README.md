@@ -21,5 +21,7 @@ ERROR 1: PROJ: proj_create_from_database: Open of /opt/conda/share/proj failed
 
 ## TODO
 
+-[] Update the test framework to allow for more than just CSV outputs.
+-[] Add additional test cases to cover the data in the HEROP_DATA_DIR. For example, use TRACT instead of ZIP.
 -[] Allow for more complex test cases, specified by case.
 -[] Singularity/Apptainer version.
