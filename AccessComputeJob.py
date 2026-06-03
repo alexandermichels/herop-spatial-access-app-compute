@@ -38,8 +38,8 @@ print("\n**End debugging info**\n\n")
 # 
 # * allow for multi-select for methods
 # * input data for population
-# * allow supply data file to be named anything
-# * allow supply data file to be any data type
+# *[DONE] allow supply data file to be named anything
+# *[DONE] allow supply data file to be any data type
 # * input data for travel times
 
 # In[4]:
@@ -263,9 +263,14 @@ def get_supply_data():
         supply_data_path = os.path.join(DATA_FOLDER, SUPPLY_FILENAME)
     
     try:
-        supply_df = gpd.read_file(supply_data_path)
-    except ValueError as e:
-        print(f"Caught ValueError: {e}...")
+        if supply_data_path.lower().endswith(".csv"):
+            # CSV inputs require pandas loading; geopandas.read_file
+            # fails for non-spatial CSVs
+            supply_df = pd.read_csv(supply_data_path)
+        else:
+            supply_df = gpd.read_file(supply_data_path)
+    except Exception as e:
+        raise RuntimeError(f"Failed to load supply file {supply_data_path}: {e}")
     
     if not type(supply_df) == gpd.GeoDataFrame:
         if "geometry" in supply_df.columns:

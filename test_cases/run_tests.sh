@@ -29,7 +29,7 @@ for tcase in "${tcases[@]}"; do
     # echo $case_result_folder
 
     # volume mounts are designed to mimic CyberGIS-Compute
-    docker run --env result_folder="/job/result/" --read-only -v ./exec:/job/executable --read-only -v ./$tcase:/job/data -v ./$case_result_folder:/job/result/:rw --read-only -v $herop_data_folder:/job/herop_access_data -w /job/executable $DOCKERIMAGE bash -c "source /job/data/params.env && python3 AccessComputeJob.py" > $case_result_folder/out.log
+    docker run --env result_folder="/job/result/" --env data_folder="/job/data/" --read-only -v ./exec:/job/executable --read-only -v ./$tcase:/job/data -v ./$case_result_folder:/job/result/:rw --read-only -v $herop_data_folder:/job/herop_access_data -w /job/executable $DOCKERIMAGE bash -c "source /job/data/params.env && python3 AccessComputeJob.py" > $case_result_folder/out.log
 
     # check for the output CSV
     ## TODO will need to check for either CSV or gpkg later!
