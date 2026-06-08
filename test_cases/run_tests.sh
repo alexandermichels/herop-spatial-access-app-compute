@@ -33,7 +33,28 @@ for tcase in "${tcases[@]}"; do
 
     # check for the output CSV
     ## TODO will need to check for either CSV or gpkg later!
-    expected_output="${case_result_folder}/access_result.csv"
+    # source the case params so the test script can read param_output_format
+    source ./$tcase/params.env
+
+    case "$param_output_format" in
+        "CSV")
+            expected_output="${case_result_folder}/access_result.csv"
+            ;;
+        "GPKG")
+            expected_output="${case_result_folder}/access_result.gpkg"
+            ;;
+        "GEOJSON")
+            expected_output="${case_result_folder}/access_result.geojson"
+            ;;
+        "")
+            expected_output="${case_result_folder}/access_result.csv"
+            ;;
+        *)
+            printred "${cnum}/${#tcases[@]} (${tcase}): Unsupported output format: $param_output_format"
+            (( cnum++ ))
+            continue
+            ;;
+    esac
     if [ ! -f $expected_output ]; then
         printred "${cnum}/${#tcases[@]} (${tcase}): Output not found"
     fi

@@ -572,5 +572,9 @@ results.head()
 # TODO: DON'T JUST DEFAULT TO GPKG?
 if OUTPUT_FORMAT == "CSV":
     results.drop(columns=["geometry"]).to_csv(os.path.join(RESULT_FOLDER, "access_result.csv"))
-else:
+elif OUTPUT_FORMAT == "GPKG":
     results.to_file(os.path.join(RESULT_FOLDER, "access_result.gpkg"))
+elif OUTPUT_FORMAT == "GEOJSON":
+    results.to_file(os.path.join(RESULT_FOLDER, "access_result.geojson"), driver="GeoJSON")
+else:
+    raise ValueError(f"Unsupported OUTPUT_FORMAT: {OUTPUT_FORMAT}")
