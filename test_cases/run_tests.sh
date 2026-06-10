@@ -20,7 +20,7 @@ tcases=(case*/)
 cnum=0
 for tcase in "${tcases[@]}"; do
     echo "Executing case ${cnum}/${#tcases[@]}: ${tcase}..."
-    echo $param_mobility_mode
+    #echo $param_mobility_mode
     case_result_folder="${result_folder}${tcase}"
     mkdir -p $case_result_folder
     chmod -R 777 $case_result_folder  # makes the directory writable to everyone.
