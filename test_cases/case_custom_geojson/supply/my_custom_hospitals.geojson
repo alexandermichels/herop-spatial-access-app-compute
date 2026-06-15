@@ -1,0 +1,38 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "ZIP": 60601,
+        "opportunities": 3
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-87.6298, 41.8781]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "ZIP": 60602,
+        "opportunities": 5
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-87.6231, 41.8818]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "ZIP": 60603,
+        "opportunities": 1
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-87.7000, 41.9100]
+      }
+    }
+  ]
+}

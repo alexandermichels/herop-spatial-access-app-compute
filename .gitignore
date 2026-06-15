@@ -1,4 +1,6 @@
 *.csv
+!test_cases/**/supply/*.csv
+!test_cases/**/population/*.csv
 slurm*
 result/*
 access_result.*
