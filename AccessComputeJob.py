@@ -91,6 +91,8 @@ DATA_FOLDER = os.getenv('data_folder')  # data input from the end user
 # get the appropriate variables, these will be passed by CyberGIS-Compute
 MOBILITY_MODE = os.getenv('param_mobility_mode')
 POPULATION_TYPE = os.getenv('param_population_type')
+POPULATION_FILENAME = os.getenv("param_population_filename", "")
+TRAVEL_MATRIX_FILENAME = os.getenv("param_travel_matrix_filename", "")
 MAX_TRAVEL_TIME = os.getenv('param_max_travel_time')
 ACCESS_MEASURE = os.getenv('param_access_measure')
 SUPPLY_FILENAME = os.getenv('param_supply_filename')
@@ -210,12 +212,22 @@ def load_geometry() -> gpd.GeoDataFrame:
 
 
 def load_population() -> gpd.GeoDataFrame:
-    if POPULATION_TYPE == "TRACT":
-        population = gpd.read_file(os.path.join(HEROP_DATA_DIR, "DEFAULT_POP_DATA_TRACT.csv")).iloc[1:]
+    if POPULATION_FILENAME != "":
+        population_path = os.path.join(DATA_FOLDER, POPULATION_FILENAME)
+    elif POPULATION_TYPE == "TRACT":
+        population_path = os.path.join(HEROP_DATA_DIR, "DEFAULT_POP_DATA_TRACT.csv")
     elif POPULATION_TYPE == "ZIP":
-        population = gpd.read_file(os.path.join(HEROP_DATA_DIR, "DEFAULT_POP_DATA_ZIP.csv")).iloc[1:]
+        population_path = os.path.join(HEROP_DATA_DIR, "DEFAULT_POP_DATA_ZIP.csv")
     else:
         raise Exception(f"POPULATION_TYPE should be TRACT or ZIP, somehow got {POPULATION_TYPE}")
+
+    if population_path.lower().endswith(".csv"):
+        population = pd.read_csv(population_path, low_memory=False)
+    else:
+        population = gpd.read_file(population_path)
+
+    if POPULATION_FILENAME == "":
+        population = population.iloc[1:]
     # TODO: for now just coercing to int64, revisit later
     try:
         population[population_join_col] = population[population_join_col].astype('int64')
@@ -338,16 +350,35 @@ supply.head()
 def get_transit_matrix():
 #     MOBILITY_MODE = "WALKING"
 #     POPULATION_TYPE = "TRACT"
+
     assert MOBILITY_MODE in ["DRIVING", "WALKING", "BIKING"]
-    if POPULATION_TYPE == "TRACT" and MOBILITY_MODE == "DRIVING":
+    if TRAVEL_MATRIX_FILENAME != "":
+        path = os.path.join(DATA_FOLDER, TRAVEL_MATRIX_FILENAME)
+        assert os.path.exists(path)
+
+        if os.path.isdir(path):
+            transit_matrix = pd.concat(
+                pd.read_parquet(_file)
+                for _file in pathlib.Path(path).glob("*.parquet")
+            )
+        else:
+            transit_matrix = pd.read_parquet(path)
+
+    elif POPULATION_TYPE == "TRACT" and MOBILITY_MODE == "DRIVING":
         path = os.path.join(HEROP_DATA_DIR, "US-matrix-TRACT-DRIVING")
-        assert os.path.exists(path)  # quick sanity check, we can add more if necessary
+        assert os.path.exists(path)
+
         transit_matrix = pd.concat(
-            pd.read_parquet(_file) for _file in pathlib.Path(path).glob("*.parquet")
+            pd.read_parquet(_file)
+            for _file in pathlib.Path(path).glob("*.parquet")
         )
+
     else:
-        path = os.path.join(HEROP_DATA_DIR, f"US-matrix-{POPULATION_TYPE}-{MOBILITY_MODE}.parquet")
-        assert os.path.exists(path)  # quick sanity check, we can add more if necessary
+        path = os.path.join(
+            HEROP_DATA_DIR,
+            f"US-matrix-{POPULATION_TYPE}-{MOBILITY_MODE}.parquet"
+        )
+        assert os.path.exists(path)
         transit_matrix = pd.read_parquet(path)
     # quick sanity checking/cleaning
     _len = len(transit_matrix)
