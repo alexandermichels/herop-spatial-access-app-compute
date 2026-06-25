@@ -37,10 +37,10 @@ print("\n**End debugging info**\n\n")
 # ## TODO
 # 
 # * allow for multi-select for methods
-# * input data for population
+# *[DONE] input data for population
 # *[DONE] allow supply data file to be named anything
 # *[DONE] allow supply data file to be any data type
-# * input data for travel times
+# * [] input data for travel times
 
 # In[4]:
 
@@ -140,8 +140,11 @@ OUTPUT_FORMAT=os.getenv('param_output_format')
 geo_join_col = "GEOID" if POPULATION_TYPE == 'TRACT' else "ZCTA5CE10"
 
 # population data
-population_join_col = 'FIPS' if POPULATION_TYPE == "TRACT" else "5-digit ZIP Code Tabulation Area"  # TODO: is this always FIPS? Definitely won't be if people upload data?
-population_data_col = "Total Population"  # TODO: is this always Total Population?
+default_population_join_col = 'FIPS' if POPULATION_TYPE == "TRACT" else "5-digit ZIP Code Tabulation Area"
+default_population_data_col = "Total Population"
+
+population_join_col = os.getenv("param_population_join_col", "") or default_population_join_col
+population_data_col = os.getenv("param_population_data_col", "") or default_population_data_col
 
 # travel time data
 matrix_join_col_o: str = "origin"
@@ -223,6 +226,8 @@ def load_population() -> gpd.GeoDataFrame:
 
     if population_path.lower().endswith(".csv"):
         population = pd.read_csv(population_path, low_memory=False)
+    #elif population_path.lower().endswith((".xlsx", ".xls")):
+    #    population = pd.read_excel(population_path, engine="openpyxl")
     else:
         population = gpd.read_file(population_path)
 
@@ -233,6 +238,17 @@ def load_population() -> gpd.GeoDataFrame:
         population[population_join_col] = population[population_join_col].astype('int64')
     except Exception as e: 
         print(f" Error in population[population_join_col] : {e} ")
+
+    missing_cols = [
+        col for col in [population_join_col, population_data_col]
+        if col not in population.columns
+    ]
+
+    if missing_cols:
+        raise ValueError(
+            f"Population file is missing required column(s): {missing_cols}. "
+            f"Available columns: {list(population.columns)}"
+        )
     population = population[[population_join_col, population_data_col]]
     # join to geometry data
     geometry = load_geometry()
