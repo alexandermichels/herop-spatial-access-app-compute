@@ -37,10 +37,10 @@ print("\n**End debugging info**\n\n")
 # ## TODO
 # 
 # * allow for multi-select for methods
-# * input data for population
+# *[DONE] input data for population
 # *[DONE] allow supply data file to be named anything
 # *[DONE] allow supply data file to be any data type
-# * input data for travel times
+# * [] input data for travel times
 
 # In[4]:
 
@@ -91,6 +91,8 @@ DATA_FOLDER = os.getenv('data_folder')  # data input from the end user
 # get the appropriate variables, these will be passed by CyberGIS-Compute
 MOBILITY_MODE = os.getenv('param_mobility_mode')
 POPULATION_TYPE = os.getenv('param_population_type')
+POPULATION_FILENAME = os.getenv("param_population_filename", "")
+TRAVEL_MATRIX_FILENAME = os.getenv("param_travel_matrix_filename", "")
 MAX_TRAVEL_TIME = os.getenv('param_max_travel_time')
 ACCESS_MEASURE = os.getenv('param_access_measure')
 SUPPLY_FILENAME = os.getenv('param_supply_filename')
@@ -138,13 +140,20 @@ OUTPUT_FORMAT=os.getenv('param_output_format')
 geo_join_col = "GEOID" if POPULATION_TYPE == 'TRACT' else "ZCTA5CE10"
 
 # population data
-population_join_col = 'FIPS' if POPULATION_TYPE == "TRACT" else "5-digit ZIP Code Tabulation Area"  # TODO: is this always FIPS? Definitely won't be if people upload data?
-population_data_col = "Total Population"  # TODO: is this always Total Population?
+default_population_join_col = 'FIPS' if POPULATION_TYPE == "TRACT" else "5-digit ZIP Code Tabulation Area"
+default_population_data_col = "Total Population"
+
+population_join_col = os.getenv("param_population_join_col", "") or default_population_join_col
+population_data_col = os.getenv("param_population_data_col", "") or default_population_data_col
 
 # travel time data
-matrix_join_col_o: str = "origin"
-matrix_join_col_d: str = "destination"
-matrix_travel_cost_col: str = "minutes"
+default_matrix_join_col_o: str = "origin"
+default_matrix_join_col_d: str = "destination"
+default_matrix_travel_cost_col: str = "minutes"
+
+matrix_join_col_o: str = os.getenv("param_matrix_origin_col", "") or default_matrix_join_col_o
+matrix_join_col_d: str = os.getenv("param_matrix_destination_col", "") or default_matrix_join_col_d
+matrix_travel_cost_col: str = os.getenv("param_matrix_travel_time_col", "") or default_matrix_travel_cost_col
 
 
 # In[8]:
@@ -210,17 +219,40 @@ def load_geometry() -> gpd.GeoDataFrame:
 
 
 def load_population() -> gpd.GeoDataFrame:
-    if POPULATION_TYPE == "TRACT":
-        population = gpd.read_file(os.path.join(HEROP_DATA_DIR, "DEFAULT_POP_DATA_TRACT.csv")).iloc[1:]
+    if POPULATION_FILENAME != "":
+        population_path = os.path.join(DATA_FOLDER, POPULATION_FILENAME)
+    elif POPULATION_TYPE == "TRACT":
+        population_path = os.path.join(HEROP_DATA_DIR, "DEFAULT_POP_DATA_TRACT.csv")
     elif POPULATION_TYPE == "ZIP":
-        population = gpd.read_file(os.path.join(HEROP_DATA_DIR, "DEFAULT_POP_DATA_ZIP.csv")).iloc[1:]
+        population_path = os.path.join(HEROP_DATA_DIR, "DEFAULT_POP_DATA_ZIP.csv")
     else:
         raise Exception(f"POPULATION_TYPE should be TRACT or ZIP, somehow got {POPULATION_TYPE}")
+
+    if population_path.lower().endswith(".csv"):
+        population = pd.read_csv(population_path, low_memory=False)
+    #elif population_path.lower().endswith((".xlsx", ".xls")):
+    #    population = pd.read_excel(population_path, engine="openpyxl")
+    else:
+        population = gpd.read_file(population_path)
+
+    if POPULATION_FILENAME == "":
+        population = population.iloc[1:]
     # TODO: for now just coercing to int64, revisit later
     try:
         population[population_join_col] = population[population_join_col].astype('int64')
     except Exception as e: 
         print(f" Error in population[population_join_col] : {e} ")
+
+    missing_cols = [
+        col for col in [population_join_col, population_data_col]
+        if col not in population.columns
+    ]
+
+    if missing_cols:
+        raise ValueError(
+            f"Population file is missing required column(s): {missing_cols}. "
+            f"Available columns: {list(population.columns)}"
+        )
     population = population[[population_join_col, population_data_col]]
     # join to geometry data
     geometry = load_geometry()
@@ -338,17 +370,37 @@ supply.head()
 def get_transit_matrix():
 #     MOBILITY_MODE = "WALKING"
 #     POPULATION_TYPE = "TRACT"
+
     assert MOBILITY_MODE in ["DRIVING", "WALKING", "BIKING"]
-    if POPULATION_TYPE == "TRACT" and MOBILITY_MODE == "DRIVING":
+    if TRAVEL_MATRIX_FILENAME != "":
+        path = os.path.join(DATA_FOLDER, TRAVEL_MATRIX_FILENAME)
+        assert os.path.exists(path)
+
+        if os.path.isdir(path):
+            transit_matrix = pd.concat(
+                pd.read_parquet(_file)
+                for _file in pathlib.Path(path).glob("*.parquet")
+            )
+        else:
+            transit_matrix = pd.read_parquet(path)
+
+    elif POPULATION_TYPE == "TRACT" and MOBILITY_MODE == "DRIVING":
         path = os.path.join(HEROP_DATA_DIR, "US-matrix-TRACT-DRIVING")
-        assert os.path.exists(path)  # quick sanity check, we can add more if necessary
+        assert os.path.exists(path)
+
         transit_matrix = pd.concat(
-            pd.read_parquet(_file) for _file in pathlib.Path(path).glob("*.parquet")
+            pd.read_parquet(_file)
+            for _file in pathlib.Path(path).glob("*.parquet")
         )
+
     else:
-        path = os.path.join(HEROP_DATA_DIR, f"US-matrix-{POPULATION_TYPE}-{MOBILITY_MODE}.parquet")
-        assert os.path.exists(path)  # quick sanity check, we can add more if necessary
+        path = os.path.join(
+            HEROP_DATA_DIR,
+            f"US-matrix-{POPULATION_TYPE}-{MOBILITY_MODE}.parquet"
+        )
+        assert os.path.exists(path)
         transit_matrix = pd.read_parquet(path)
+    print(transit_matrix.columns.tolist())
     # quick sanity checking/cleaning
     _len = len(transit_matrix)
     transit_matrix = transit_matrix[transit_matrix[matrix_travel_cost_col] >= 0]
