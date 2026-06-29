@@ -147,9 +147,13 @@ population_join_col = os.getenv("param_population_join_col", "") or default_popu
 population_data_col = os.getenv("param_population_data_col", "") or default_population_data_col
 
 # travel time data
-matrix_join_col_o: str = "origin"
-matrix_join_col_d: str = "destination"
-matrix_travel_cost_col: str = "minutes"
+default_matrix_join_col_o: str = "origin"
+default_matrix_join_col_d: str = "destination"
+default_matrix_travel_cost_col: str = "minutes"
+
+matrix_join_col_o: str = os.getenv("param_matrix_origin_col", "") or default_matrix_join_col_o
+matrix_join_col_d: str = os.getenv("param_matrix_destination_col", "") or default_matrix_join_col_d
+matrix_travel_cost_col: str = os.getenv("param_matrix_travel_time_col", "") or default_matrix_travel_cost_col
 
 
 # In[8]:
@@ -396,6 +400,7 @@ def get_transit_matrix():
         )
         assert os.path.exists(path)
         transit_matrix = pd.read_parquet(path)
+    print(transit_matrix.columns.tolist())
     # quick sanity checking/cleaning
     _len = len(transit_matrix)
     transit_matrix = transit_matrix[transit_matrix[matrix_travel_cost_col] >= 0]
